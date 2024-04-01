@@ -6,10 +6,12 @@ import h5py
 from astropy.cosmology import Planck15,z_at_value
 import astropy.units as u
 import warnings
+import pickle
+import pandas
 
 class emulator():
 
-    def __init__(self,trained_weights,input_size,hidden_layer_width,hidden_layer_depth,activation):
+    def __init__(self,trained_weights,scaler_params,input_size,hidden_layer_width,hidden_layer_depth,activation):
 
         # Instantiate neural network
         self.trained_weights = trained_weights
@@ -23,6 +25,11 @@ class emulator():
 
         # Load trained weights and biases
         weight_data = h5py.File(self.trained_weights,'r')
+
+        # Load scaling parameters
+        with open(scaler_params,'rb') as f:
+            scaler = pickle.load(f) 
+            self.scaler = {'mean':scaler.mean_,'scale':scaler.scale_}
 
         # Define helper functions with which to access MLP weights and biases
         # Needed by `eqx.tree_at`
@@ -43,7 +50,7 @@ class emulator():
             self.nn = eqx.tree_at(get_biases(i), self.nn, weight_data['{0}/{0}/bias:0'.format(key)][()].T)
 
     def __call__(self,x):
-        return jax.vmap(self.nn)(x)
+        return jax.vmap(self.nn)((x-self.scaler['mean'])/self.scaler['scale'])
 
     def _check_distance(self,parameter_dict):
 
@@ -152,23 +159,30 @@ class emulator():
 
     def check_input(self,parameter_dict):
 
+        # Convert from pandas table to dictionary, if necessary
+        if type(parameter_dict)==pandas.core.frame.DataFrame:
+            parameter_dict = parameter_dict.to_dict(orient='list')
+
         # Check parameters
         self._check_distance(parameter_dict)
         self._check_masses(parameter_dict)
         self._check_spins(parameter_dict)
         self._check_extrinsic(parameter_dict)
 
+        return parameter_dict
+
 class p_det_O3(emulator):
 
     def __init__(self):
         
-        model_weights="./../trained_weights/job_98_weights.hdf5"
-        input_dimension=17
+        model_weights="./../trained_weights/job_90_weights.hdf5"
+        scaler="./../trained_weights/job_90_input_scaler.pickle"
+        input_dimension=15
         hidden_width=192
         hidden_depth=3
         activation=lambda x: jax.nn.leaky_relu(x,1e-3)
 
-        super().__init__(model_weights,input_dimension,hidden_width,hidden_depth,activation)
+        super().__init__(model_weights,scaler,input_dimension,hidden_width,hidden_depth,activation)
 
     def predict(self,input_parameter_dict):
 
@@ -176,7 +190,7 @@ class p_det_O3(emulator):
         parameter_dict = input_parameter_dict.copy()
         
         # Check input
-        self.check_input(parameter_dict)
+        parameter_dict = self.check_input(parameter_dict)
 
         # Compute additional derived parameters
         Mc_DL_ratio = parameter_dict['chirp_mass_det']**(5./6.)/parameter_dict['luminosity_distance']
@@ -207,12 +221,10 @@ class p_det_O3(emulator):
             amp_factor_plus,
             amp_factor_cross,
             log_Mc,
-            log_Mc, ### Dummy
             log_Mtot,
             parameter_dict['eta'],
             parameter_dict['q'],
             log_D,
-            log_D, ### Dummy
             parameter_dict['right_ascension'],
             parameter_dict['sin_declination'],
             abs_cos_inc,
