@@ -26,6 +26,7 @@ params = {'mass_1':[2.5,10.0,15.0],  # Primary source-frame mass (units Msun)
           'a_1':[0.0,0.2,0.3],       # Primary dimensionless spin
           'a_2':[0.1,0.4,0.2],       # Secondary dimensionless spin
           'redshift':[0.1,0.9,1.0]   # Redshift
+          }
 
 # Compute detection probabilities
 detection_probs = p.predict(params)
