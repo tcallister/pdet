@@ -18,3 +18,6 @@ p = p_det_O3()
 
 # Define data
 ```
+## Range of validity
+
+### `p_det_O3`
