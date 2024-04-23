@@ -1,58 +1,103 @@
 import equinox as eqx
 import jax
+from jax.config import config
+config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import numpy as np
 import h5py
-from astropy.cosmology import Planck15,z_at_value
+from astropy.cosmology import Planck15, z_at_value
 import astropy.units as u
 import warnings
 import pickle
 import pandas
+import os
+
 
 class emulator():
 
-    def __init__(self,trained_weights,scaler_params,input_size,hidden_layer_width,hidden_layer_depth,activation):
+    def __init__(self,
+                 trained_weights,
+                 scaler_params,
+                 input_size,
+                 hidden_layer_width,
+                 hidden_layer_depth,
+                 activation):
 
         # Instantiate neural network
         self.trained_weights = trained_weights
         self.nn = eqx.nn.MLP(in_size=input_size,
-                            out_size=1,
-                            depth=hidden_layer_depth,
-                            width_size=hidden_layer_width,
-                            activation=activation,
-                            final_activation=jax.nn.sigmoid,
-                            key=jax.random.PRNGKey(111))
+                             out_size=1,
+                             depth=hidden_layer_depth,
+                             width_size=hidden_layer_width,
+                             activation=activation,
+                             final_activation=jax.nn.sigmoid,
+                             key=jax.random.PRNGKey(111))
 
         # Load trained weights and biases
-        weight_data = h5py.File(self.trained_weights,'r')
+        weight_data = h5py.File(self.trained_weights, 'r')
 
         # Load scaling parameters
-        with open(scaler_params,'rb') as f:
-            scaler = pickle.load(f) 
-            self.scaler = {'mean':scaler.mean_,'scale':scaler.scale_}
+        with open(scaler_params, 'rb') as f:
+            scaler = pickle.load(f)
+            self.scaler = {'mean': scaler.mean_, 'scale': scaler.scale_}
 
         # Define helper functions with which to access MLP weights and biases
         # Needed by `eqx.tree_at`
         def get_weights(i):
             return lambda t: t.layers[i].weight
+
         def get_biases(i):
             return lambda t: t.layers[i].bias
 
         # Loop across layers, load pre-trained weights and biases
-        for i in range(hidden_layer_depth):
+        for i in range(hidden_layer_depth+1):
 
-            if i==0:
+            if i == 0:
                 key = 'dense'
             else:
                 key = 'dense_{0}'.format(i)
 
-            self.nn = eqx.tree_at(get_weights(i), self.nn, weight_data['{0}/{0}/kernel:0'.format(key)][()].T)
-            self.nn = eqx.tree_at(get_biases(i), self.nn, weight_data['{0}/{0}/bias:0'.format(key)][()].T)
+            self.nn = eqx.tree_at(get_weights(i),self.nn,weight_data['{0}/{0}/kernel:0'.format(key)][()].T)
+            self.nn = eqx.tree_at(get_biases(i),self.nn,weight_data['{0}/{0}/bias:0'.format(key)][()].T)
 
-    def __call__(self,x):
-        return jax.vmap(self.nn)((x-self.scaler['mean'])/self.scaler['scale'])
+    def _transform_parameters(self, *physical_params):
 
-    def _check_distance(self,parameter_dict):
+        """
+        OVERWRITE UPON SUBCLASSING.
+
+        Function to convert from a predetermined set of user-provided physical CBC parameters
+        to the input space expected by the trained neural network. This function should
+        be JIT-able and differentiable, and so consistency/completeness checks should
+        be performed upstream; we should be able to assume that `physical_params` is provided
+        as expected.
+
+        Parameters
+        ----------
+        physical_params : numpy.array or jax.numpy.array
+            Array containing physical parameters characterizing CBC signals
+
+        Returns
+        -------
+        transformed_parameters : jax.numpy.array
+            Transformed parameter space expected by trained neural network
+        """
+
+        # APPLY REQUIRED TRANSFORMATION HERE
+        # transformed_params = ...
+
+        # Dummy transformation
+        transformed_params = physical_params
+
+        # Jaxify
+        transformed_params = jnp.array(physical_params)
+
+        return transformed_params 
+
+    def __call__(self, x):
+        transformed_x = self._transform_parameters(*x)
+        return jax.vmap(self.nn)((transformed_x.T-self.scaler['mean'])/self.scaler['scale'])
+
+    def _check_distance(self, parameter_dict):
 
         """
         Helper function to check the presence of required distance arguments, and augment input
@@ -60,7 +105,7 @@ class emulator():
         """
 
         # Check for distance parameters
-        allowed_distance_params = ['luminosity_distance','comoving_distance','redshift']
+        allowed_distance_params = ['luminosity_distance', 'comoving_distance', 'redshift']
         if not any(param in parameter_dict for param in allowed_distance_params):
             raise RuntimeError("Missing distance parameter. Requires one of:",allowed_distance_params)
         elif sum(param in parameter_dict for param in allowed_distance_params)>1:
@@ -77,7 +122,7 @@ class emulator():
         elif 'redshift' in parameter_dict:
             parameter_dict['luminosity_distance'] = Planck15.luminosity_distance(parameter_dict['redshift']).to(u.Gpc).value
 
-    def _check_masses(self,parameter_dict):
+    def _check_masses(self, parameter_dict):
 
         """
         Helper function to check the presence of required mass arguments, and augment
@@ -85,26 +130,16 @@ class emulator():
         """
 
         # Check that mass parameters are present
-        required_mass_params = ['mass_1','mass_2']
+        required_mass_params = ['mass_1', 'mass_2']
         for param in required_mass_params:
             if param not in parameter_dict:
                 raise RuntimeError("Must include {0} parameter".format(param))
 
         # Reshape for safety below
-        parameter_dict['mass_1'] = np.reshape(parameter_dict['mass_1'],-1)
-        parameter_dict['mass_2'] = np.reshape(parameter_dict['mass_2'],-1)
+        parameter_dict['mass_1'] = np.reshape(parameter_dict['mass_1'], -1)
+        parameter_dict['mass_2'] = np.reshape(parameter_dict['mass_2'], -1)
 
-        # Derived mass parameters
-        m1_det = parameter_dict['mass_1']*(1.+parameter_dict['redshift'])
-        m2_det = parameter_dict['mass_2']*(1.+parameter_dict['redshift'])
-        parameter_dict['m1_det'] = m1_det
-        parameter_dict['m2_det'] = m1_det 
-        parameter_dict['eta'] = m1_det*m2_det/(m1_det+m2_det)**2
-        parameter_dict['q'] = m2_det/m1_det
-        parameter_dict['total_mass_det'] = m1_det+m2_det
-        parameter_dict['chirp_mass_det'] = parameter_dict['eta']**(3./5.)*parameter_dict['total_mass_det']
-
-    def _check_spins(self,parameter_dict):
+    def _check_spins(self, parameter_dict):
 
         """
         Helper function to check for the presence of required spin parameters
@@ -112,14 +147,14 @@ class emulator():
         """
 
         # Check that required spin parameters are present
-        required_spin_params = ['a_1','a_2']
+        required_spin_params = ['a_1', 'a_2']
         for param in required_spin_params:
             if param not in parameter_dict:
                 raise RuntimeError("Must include {0} parameter".format(param))
 
         # Reshape for safety below
-        parameter_dict['a_1'] = np.reshape(parameter_dict['a_1'],-1)
-        parameter_dict['a_2'] = np.reshape(parameter_dict['a_2'],-1)
+        parameter_dict['a_1'] = np.reshape(parameter_dict['a_1'], -1)
+        parameter_dict['a_2'] = np.reshape(parameter_dict['a_2'], -1)
 
         # Check for optional parameters, fill in if absent
         if 'cos_theta_1' not in parameter_dict:
@@ -132,7 +167,7 @@ class emulator():
             warnings.warn("Parameter 'phi_12' not present. Filling with random value from isotropic distribution.")
             parameter_dict['phi_12'] = 2.*np.pi*np.random.random(parameter_dict['a_1'].shape)
 
-    def _check_extrinsic(self,parameter_dict):
+    def _check_extrinsic(self, parameter_dict):
 
         """
         Helper method to check required extrinsic parameters and augment as necessary.
@@ -157,7 +192,7 @@ class emulator():
             warnings.warn("Parameter 'polarization_angle' not present. Filling with random value from isotropic distribution.")
             parameter_dict['polarization_angle'] = 2.*np.pi*np.random.random(parameter_dict['mass_1'].shape)
 
-    def check_input(self,parameter_dict):
+    def check_input(self, parameter_dict):
 
         # Convert from pandas table to dictionary, if necessary
         if type(parameter_dict)==pandas.core.frame.DataFrame:
@@ -171,20 +206,74 @@ class emulator():
 
         return parameter_dict
 
+
 class p_det_O3(emulator):
 
     def __init__(self):
         
-        model_weights="./../trained_weights/job_90_weights.hdf5"
-        scaler="./../trained_weights/job_90_input_scaler.pickle"
-        input_dimension=15
+        model_weights=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_83_weights.hdf5")
+        scaler=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_83_input_scaler.pickle")
+        input_dimension=12
         hidden_width=192
         hidden_depth=3
-        activation=lambda x: jax.nn.leaky_relu(x,1e-3)
+        activation=lambda x: jax.nn.leaky_relu(x, 1e-3)
 
-        super().__init__(model_weights,scaler,input_dimension,hidden_width,hidden_depth,activation)
+        self.interp_DL = np.logspace(-2,np.log10(15.),500)
+        self.interp_z = z_at_value(Planck15.luminosity_distance,self.interp_DL*u.Gpc).value
 
-    def predict(self,input_parameter_dict):
+        super().__init__(model_weights, scaler, input_dimension, hidden_width, hidden_depth, activation)
+
+    def _transform_parameters(self,
+                              m1_trials,
+                              m2_trials,
+                              a1_trials,
+                              a2_trials,
+                              cost1_trials,
+                              cost2_trials,
+                              z_trials,
+                              cos_inclination_trials,
+                              pol_trials,
+                              phi12_trials,
+                              ra_trials,
+                              sin_dec_trials):
+
+        q = m2_trials/m1_trials
+        eta = q/(1.+q)**2
+        Mtot_det = (m1_trials+m2_trials)*(1.+z_trials)
+        Mc_det = eta**(3./5.)*Mtot_det
+       
+        DL = jnp.interp(z_trials,self.interp_z,self.interp_DL)
+        Mc_DL_ratio = Mc_det**(5./6.)/DL
+        amp_factor_plus = jnp.log((Mc_DL_ratio*((1.+cos_inclination_trials**2)/2))**2)
+        amp_factor_cross = jnp.log((Mc_DL_ratio*cos_inclination_trials)**2)
+       
+        # Effective spins
+        chi_effective = (a1_trials*cost1_trials + q*a2_trials*cost2_trials)/(1.+q)
+        chi_diff = (a1_trials*cost1_trials - q*a2_trials*cost2_trials)/2.
+       
+        # Generalized precessing spin
+        Omg = q*(3.+4.*q)/(4.+3.*q)
+        chi_1p = a1_trials*jnp.sqrt(1.-cost1_trials**2)
+        chi_2p = a2_trials*jnp.sqrt(1.-cost2_trials**2)
+        chi_p_gen = jnp.sqrt(chi_1p**2 + (Omg*chi_2p)**2 + 2.*Omg*chi_1p*chi_2p*jnp.cos(phi12_trials))
+       
+        return jnp.array([amp_factor_plus,
+                          amp_factor_cross,
+                          jnp.log(Mc_det),
+                          jnp.log(Mtot_det),
+                          eta,
+                          q,
+                          jnp.log(DL),
+                          ra_trials,
+                          sin_dec_trials,
+                          jnp.abs(cos_inclination_trials),
+                          jnp.sin(pol_trials),
+                          jnp.cos(pol_trials),
+                          chi_effective,
+                          chi_diff,
+                          chi_p_gen])
+
+    def predict(self, input_parameter_dict):
 
         # Copy so that we can safely modify dictionary in-place
         parameter_dict = input_parameter_dict.copy()
@@ -192,49 +281,18 @@ class p_det_O3(emulator):
         # Check input
         parameter_dict = self.check_input(parameter_dict)
 
-        # Compute additional derived parameters
-        Mc_DL_ratio = parameter_dict['chirp_mass_det']**(5./6.)/parameter_dict['luminosity_distance']
-        amp_factor_plus = np.log((Mc_DL_ratio*((1.+parameter_dict['cos_inclination']**2)/2.))**2)
-        amp_factor_cross = np.log((Mc_DL_ratio*parameter_dict['cos_inclination'])**2)
-        log_Mc = np.log(parameter_dict['chirp_mass_det'])
-        log_Mtot = np.log(parameter_dict['total_mass_det'])
-        log_D = np.log(parameter_dict['luminosity_distance'])
-        abs_cos_inc = np.abs(parameter_dict['cos_inclination'])
-        sin_pol = np.sin(parameter_dict['polarization_angle'])
-        cos_pol = np.cos(parameter_dict['polarization_angle'])
-
-        # Effective spins
-        a1 = parameter_dict['a_1']
-        a2 = parameter_dict['a_2']
-        cos_theta1 = parameter_dict['cos_theta_1']
-        cos_theta2 = parameter_dict['cos_theta_2']
-        chi_effective = (a1*cos_theta1 + parameter_dict['q']*a2*cos_theta2)/(1.+parameter_dict['q'])
-        chi_diff = (a1*cos_theta1 - a2*cos_theta2)/2.
-
-        # Generalized precessing spin
-        Omg = parameter_dict['q']*(3.+4.*parameter_dict['q'])/(4.+3.*parameter_dict['q'])
-        chi_1p = parameter_dict['a_1']*np.sqrt(1.-parameter_dict['cos_theta_1']**2)
-        chi_2p = parameter_dict['a_2']*np.sqrt(1.-parameter_dict['cos_theta_2']**2)
-        chi_p_gen = np.sqrt(chi_1p**2 + (Omg*chi_2p)**2 + 2.*Omg*chi_1p*chi_2p*np.cos(parameter_dict['phi_12']))
-
         features = jnp.array([
-            amp_factor_plus,
-            amp_factor_cross,
-            log_Mc,
-            log_Mtot,
-            parameter_dict['eta'],
-            parameter_dict['q'],
-            log_D,
-            parameter_dict['right_ascension'],
-            parameter_dict['sin_declination'],
-            abs_cos_inc,
-            sin_pol,
-            cos_pol,
-            chi_effective,
-            chi_diff,
-            chi_p_gen
-            ])
+                            parameter_dict['mass_1'],
+                            parameter_dict['mass_2'],
+                            parameter_dict['a_1'],
+                            parameter_dict['a_2'],
+                            parameter_dict['cos_theta_1'],
+                            parameter_dict['cos_theta_2'],
+                            parameter_dict['redshift'],
+                            parameter_dict['cos_inclination'],
+                            parameter_dict['polarization_angle'],
+                            parameter_dict['phi_12'],
+                            parameter_dict['right_ascension'],
+                            parameter_dict['sin_declination']])
 
-        return self.__call__(features.T)
-
-
+        return self.__call__(features)
