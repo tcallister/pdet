@@ -211,14 +211,14 @@ class p_det_O3(emulator):
 
     def __init__(self):
         
-        model_weights=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_83_weights.hdf5")
-        scaler=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_83_input_scaler.pickle")
+        model_weights=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_19_weights.hdf5")
+        scaler=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_19_input_scaler.pickle")
         input_dimension=12
         hidden_width=192
         hidden_depth=3
         activation=lambda x: jax.nn.leaky_relu(x, 1e-3)
 
-        self.interp_DL = np.logspace(-2,np.log10(15.),500)
+        self.interp_DL = np.logspace(-4,np.log10(15.),500)
         self.interp_z = z_at_value(Planck15.luminosity_distance,self.interp_DL*u.Gpc).value
 
         super().__init__(model_weights, scaler, input_dimension, hidden_width, hidden_depth, activation)
@@ -249,7 +249,7 @@ class p_det_O3(emulator):
        
         # Effective spins
         chi_effective = (a1_trials*cost1_trials + q*a2_trials*cost2_trials)/(1.+q)
-        chi_diff = (a1_trials*cost1_trials - q*a2_trials*cost2_trials)/2.
+        chi_diff = (a1_trials*cost1_trials - a2_trials*cost2_trials)/2.
        
         # Generalized precessing spin
         Omg = q*(3.+4.*q)/(4.+3.*q)
@@ -267,8 +267,8 @@ class p_det_O3(emulator):
                           ra_trials,
                           sin_dec_trials,
                           jnp.abs(cos_inclination_trials),
-                          jnp.sin(pol_trials),
-                          jnp.cos(pol_trials),
+                          jnp.sin(pol_trials%np.pi),
+                          jnp.cos(pol_trials%np.pi),
                           chi_effective,
                           chi_diff,
                           chi_p_gen])
