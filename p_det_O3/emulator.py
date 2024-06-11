@@ -209,13 +209,17 @@ class emulator():
 
 class p_det_O3(emulator):
 
-    def __init__(self):
-        
-        model_weights=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_19_weights.hdf5")
-        scaler=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_19_input_scaler.pickle")
-        input_dimension=12
+    def __init__(self,model_weights=None,scaler=None):
+
+        if model_weights==None:
+            model_weights=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_19_weights.hdf5")
+
+        if scaler==None:
+            scaler=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_19_input_scaler.pickle")
+
+        input_dimension=15
         hidden_width=192
-        hidden_depth=3
+        hidden_depth=4
         activation=lambda x: jax.nn.leaky_relu(x, 1e-3)
 
         self.interp_DL = np.logspace(-4,np.log10(15.),500)
@@ -250,6 +254,7 @@ class p_det_O3(emulator):
         # Effective spins
         chi_effective = (a1_trials*cost1_trials + q*a2_trials*cost2_trials)/(1.+q)
         chi_diff = (a1_trials*cost1_trials - a2_trials*cost2_trials)/2.
+        #chi_diff = (a1_trials*cost1_trials - q*a2_trials*cost2_trials)/(1.+q)
        
         # Generalized precessing spin
         Omg = q*(3.+4.*q)/(4.+3.*q)
@@ -263,7 +268,7 @@ class p_det_O3(emulator):
                           jnp.log(Mtot_det),
                           eta,
                           q,
-                          jnp.log(DL),
+                          DL,
                           ra_trials,
                           sin_dec_trials,
                           jnp.abs(cos_inclination_trials),
