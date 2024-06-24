@@ -15,13 +15,41 @@ import os
 
 class emulator():
 
+    """
+    Base class implementing a generic detection probability emulator.
+    Intended to be subclassed when constructing emulators for particular networks/observing runs.
+    """
+
     def __init__(self,
                  trained_weights,
-                 scaler_params,
+                 scaler,
                  input_size,
                  hidden_layer_width,
                  hidden_layer_depth,
                  activation):
+
+        """
+        Instantiate an `emulator` object
+
+        Parameters
+        ----------
+        trained_weights : `str`
+            Filepath to .hdf5 file containing trained network weights, as saved by a `tensorflow.keras.Model.save_weights` command 
+        scaler : `str`
+            Filepath to saved `sklearn.preprocessing.StandardScaler` object, fitted during network training
+        input_size : `int`
+            Dimensionality of input feature vector
+        hidden_layer_width : `int`
+            Width of hidden layers
+        hidden_layer_depth : `int`
+            Number of hidden layers
+        activation : `func`
+            Activation function to be applied to hidden layers
+
+        Returns
+        -------
+        None
+        """
 
         # Instantiate neural network
         self.trained_weights = trained_weights
@@ -37,7 +65,7 @@ class emulator():
         weight_data = h5py.File(self.trained_weights, 'r')
 
         # Load scaling parameters
-        with open(scaler_params, 'rb') as f:
+        with open(scaler, 'rb') as f:
             scaler = pickle.load(f)
             self.scaler = {'mean': scaler.mean_, 'scale': scaler.scale_}
 
