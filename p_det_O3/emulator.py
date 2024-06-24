@@ -212,6 +212,7 @@ class p_det_O3(emulator):
     def __init__(self,model_weights=None,scaler=None):
 
         if model_weights==None:
+            print("Weights not specified")
             model_weights=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_19_weights.hdf5")
 
         if scaler==None:
