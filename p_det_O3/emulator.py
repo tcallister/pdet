@@ -26,7 +26,8 @@ class emulator():
                  input_size,
                  hidden_layer_width,
                  hidden_layer_depth,
-                 activation):
+                 activation,
+                 final_activation):
 
         """
         Instantiate an `emulator` object
@@ -58,7 +59,7 @@ class emulator():
                              depth=hidden_layer_depth,
                              width_size=hidden_layer_width,
                              activation=activation,
-                             final_activation=jax.nn.sigmoid,
+                             final_activation=final_activation,
                              key=jax.random.PRNGKey(111))
 
         # Load trained weights and biases
@@ -246,15 +247,16 @@ class p_det_O3(emulator):
         if scaler==None:
             scaler=os.path.join(os.path.dirname(__file__), "./../trained_weights/job_19_input_scaler.pickle")
 
-        input_dimension=15
-        hidden_width=192
-        hidden_depth=4
-        activation=lambda x: jax.nn.leaky_relu(x, 1e-3)
+        input_dimension = 15
+        hidden_width = 192
+        hidden_depth = 4
+        activation = lambda x: jax.nn.leaky_relu(x, 1e-3)
+        final_activation = lambda x: (1.-0.0589)*jax.nn.sigmoid(x)
 
         self.interp_DL = np.logspace(-4,np.log10(15.),500)
         self.interp_z = z_at_value(Planck15.luminosity_distance,self.interp_DL*u.Gpc).value
 
-        super().__init__(model_weights, scaler, input_dimension, hidden_width, hidden_depth, activation)
+        super().__init__(model_weights, scaler, input_dimension, hidden_width, hidden_depth, activation, final_activation)
 
     def _transform_parameters(self,
                               m1_trials,
