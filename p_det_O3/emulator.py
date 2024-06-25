@@ -285,7 +285,6 @@ class p_det_O3(emulator):
         # Effective spins
         chi_effective = (a1_trials*cost1_trials + q*a2_trials*cost2_trials)/(1.+q)
         chi_diff = (a1_trials*cost1_trials - a2_trials*cost2_trials)/2.
-        #chi_diff = (a1_trials*cost1_trials - q*a2_trials*cost2_trials)/(1.+q)
        
         # Generalized precessing spin
         Omg = q*(3.+4.*q)/(4.+3.*q)
