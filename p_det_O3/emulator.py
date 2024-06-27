@@ -413,8 +413,8 @@ class p_det_O3(emulator):
 
         return jnp.array([amp_factor_plus,
                           amp_factor_cross,
-                          jnp.log(Mc_det),
-                          jnp.log(Mtot_det),
+                          Mc_det,
+                          Mtot_det,
                           eta,
                           q,
                           DL,
