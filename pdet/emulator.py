@@ -321,11 +321,11 @@ class emulator():
         return parameter_dict
 
 
-class p_det_O3(emulator):
+class pdet_O3(emulator):
 
     """
-    Class implementing the LIGO-Hanford and LIGO-Livingston network's selection
-    function during their O3 observing run. Used to evaluate the detection
+    Class implementing the LIGO-Hanford, LIGO-Livingston, and Virgo network's
+    selection function during their O3 observing run. Used to evaluate the detection
     probability of compact binaries, assuming a false alarm threshold of below
     1 per year. The computed detection probabilities include all variation in
     the detectors' sensitivities over the course of the O3 run and accounts for
