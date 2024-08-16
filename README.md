@@ -7,17 +7,17 @@ The following table describes available emulators.
 
 | Name | Observing run | Instruments | Valid Parameter Space |
 | ---- | ------------- | ----------- | --------------------- |
-| `p_det_O3` | O3 (includes both O3a and O3b) | LIGO-Hanford, LIGO-Livingston, Virgo | [test](#p_det_O3)
+| `pdet_O3` | O3 (includes both O3a and O3b) | LIGO-Hanford, LIGO-Livingston, Virgo | [test](#p_det_O3)
 
 ## How to use
 
 Once installed, detection probability calculations can be used as follows:
 
 ```python
-from pdet import p_det_O3
+from pdet import pdet_O3
 
 # Create an emulator
-p = p_det_O3()
+p = pdet_O3()
 
 # Define data
 # As an example, consider parameters for three compact binaries
@@ -32,7 +32,7 @@ params = {'mass_1':[2.5,10.0,15.0],  # Primary source-frame mass (units Msun)
 detection_probs = p.predict(params)
 ```
 
-Compact binary parameters can be passed either via a dictionary, as in the above example, or via a pandas DataFrame.
+Compact binary parameters can be passed through any structure with key/value pairs, such as a dictionary as above, pandas DataFrame, or other structured array.
 
 **Required parameters.** The following binary parameters are required:
 
