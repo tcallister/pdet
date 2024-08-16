@@ -73,7 +73,7 @@ The `predict()` method above is not amenable to compilation and/or autodifferent
 An alternative JIT-compileable and differentiable method is the `p.__call__()` function:
 
 ```python
-from pdet import p_det_O3
+from pdet import pdet_O3
 import jax
 
 # Instantiate trained emulator
