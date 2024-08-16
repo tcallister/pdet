@@ -1,4 +1,4 @@
-# p-det-O3
+# pdet
 
 This package defines ready-to-use neural network emulators for the LIGO-Virgo-KAGRA compact binary selection function.
 Specifically, this package can be used to compute **detection probabilities** for compact binary parameters with a wide range of parameters.
