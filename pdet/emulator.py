@@ -9,8 +9,8 @@ import warnings
 import pickle
 import pandas
 import os
-from jax.config import config
-config.update("jax_enable_x64", True)
+import json
+jax.config.update("jax_enable_x64", True)
 
 
 class emulator():
@@ -69,9 +69,10 @@ class emulator():
         weight_data = h5py.File(self.trained_weights, 'r')
 
         # Load scaling parameters
-        with open(scaler, 'rb') as f:
-            scaler = pickle.load(f)
-            self.scaler = {'mean': scaler.mean_, 'scale': scaler.scale_}
+        with open(scaler, 'r') as f:
+            self.scaler = json.load(f)
+            self.scaler['mean'] = jnp.array(self.scaler['mean'])
+            self.scaler['scale'] = jnp.array(self.scaler['scale'])
 
         # Define helper functions with which to access MLP weights and biases
         # Needed by `eqx.tree_at`
@@ -353,15 +354,18 @@ class pdet_O3(emulator):
         """
 
         if model_weights is None:
-            print("Weights not specified")
             model_weights = os.path.join(
                                 os.path.dirname(__file__),
-                                "./../trained_weights/job_19_weights.hdf5")
+                                "./../trained_weights/weights_HLV_O3.hdf5")
+        else:
+            print("Overriding default weights")
 
         if scaler is None:
             scaler = os.path.join(
                             os.path.dirname(__file__),
-                            "./../trained_weights/job_19_input_scaler.pickle")
+                            "./../trained_weights/scaler_HLV_O3.json")
+        else:
+            print("Overriding default weights")
 
         input_dimension = 15
         hidden_width = 192
