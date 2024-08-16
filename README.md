@@ -11,7 +11,7 @@ The following table describes available emulators.
 
 ## How to use
 
-Once installed, detection probability calculations can be used in one of two ways:
+Once installed, detection probability calculations can be used in one of two ways, [(1) the `predict` method](#1.predict()) 
 
 ### 1. `predict()`
 
