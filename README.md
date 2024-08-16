@@ -11,7 +11,7 @@ The following table describes available emulators.
 
 ## How to use
 
-Once installed, detection probability calculations can be used in one of two ways, [(1) the `predict` method](#1.predict()) 
+Once installed, detection probability calculations can be used in one of two ways, (1) [the `predict` method](#1-predict) and (2) directly calling the neural network via [the `__call__` method](#1-predict) 
 
 ### 1. `predict()`
 
