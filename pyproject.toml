@@ -1,0 +1,87 @@
+# [build-system]
+# requires = ["setuptools", "wheel"]
+# build-backend = "setuptools.build_meta"
+
+# [tool.setuptools.packages]
+# find = { where = ["src/"] }
+
+[project]
+authors = [{ name = "Tom Callister", email = "thomas.a.callister@gmail.com" }]
+name = "pdet"
+version = "0.0.1.dev"
+maintainers = [
+    { name = "Tom Callister", email = "thomas.a.callister@gmail.com" },
+]
+description = ""
+readme = "README.md"
+# license = { file = "LICENSE" }
+requires-python = ">=3.9"
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "jax==0.4.25",
+    "jaxlib==0.4.25",
+    "jaxtyping==0.2.28",
+    "equinox==0.11.3",
+    "h5py==3.10.0",
+    "numpy==1.26.4",
+    "pandas==2.2.1",
+    "astropy==6.0.1",
+]
+# keywords = []
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit==3.8.0",
+    "pytest==8.3.2",
+    "ruff==0.5.7",
+    "setuptools==72.1.0",
+]
+
+# docs = [
+#     "ipython==8.26.0",
+#     "myst-parser==4.0.0",
+#     "nbsphinx==0.9.4",
+#     "readthedocs-sphinx-search==0.3.2",
+#     "sphinx-book-theme==1.1.3",
+#     "sphinx-copybutton==0.5.2",
+#     "sphinx-design==0.6.1",
+#     "sphinx-remove-toctrees==1.0.0.post1",
+#     "sphinx-tabs==3.4.5",
+#     "sphinx",
+# ]
+
+[project.urls]
+Changelog = "https://github.com/tcallister/pdet/blob/main/CHANGELOG.md"
+Discussion = "https://github.com/tcallister/pdet/discussions"
+Homepage = "https://github.com/tcallister/pdet"
+Issues = "https://github.com/tcallister/pdet/issues"
+
+[tool.pytest.ini_options]
+addopts = ["-v", "--color=yes"]
+filterwarnings = [
+    "error",
+    "ignore:numpy.ufunc size changed,:RuntimeWarning",
+    "ignore:Using a non-tuple sequence:FutureWarning",
+    "ignore:jax.tree_structure is deprecated:FutureWarning",
+    "ignore:numpy.linalg support is experimental:UserWarning",
+    "ignore:scipy.linalg support is experimental:UserWarning",
+    "once:No GPU:UserWarning",
+    "once::DeprecationWarning",
+]
+doctest_optionflags = [
+    "ELLIPSIS",
+    "NORMALIZE_WHITESPACE",
+    "IGNORE_EXCEPTION_DETAIL",
+]
