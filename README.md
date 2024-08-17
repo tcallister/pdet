@@ -7,11 +7,11 @@ The following table describes available emulators.
 
 | Name | Observing run | Instruments | Valid Parameter Space |
 | ---- | ------------- | ----------- | --------------------- |
-| `pdet_O3` | O3 (includes both O3a and O3b) | LIGO-Hanford, LIGO-Livingston, Virgo | [test](#p_det_O3)
+| `pdet_O3` | O3 (includes both O3a and O3b) | LIGO-Hanford, LIGO-Livingston, Virgo | [test](#p_det_o3)
 
 ## How to use
 
-Once installed, detection probability calculations can be used in one of two ways, (1) [the `predict` method](#1-predict) and (2) directly calling the neural network via [the `__call__` method](#2-direct-evaluation-via-__call__) 
+Once installed, detection probability calculations can be used in one of two ways, (1) [the `predict` method](#1-predict) and (2) directly calling the neural network via [the `__call__` method](#2-direct-evaluation-via-__call__)
 
 ### 1. `predict()`
 
@@ -36,7 +36,9 @@ params = {'mass_1': [2.5, 20.0, 50.0],  # Primary source-frame mass (units Msun)
 # Compute detection probabilities
 p.predict(params)
 ```
+
 **Output**
+
 ```python
 Array([[2.03875096e-14],
        [1.52368634e-02],
@@ -47,25 +49,25 @@ Compact binary parameters can be passed through any structure with key/value pai
 
 **Required parameters.** The following binary parameters are required:
 
-   * `mass_1`: Primary source-frame mass (units of solar masses)
-   * `mass_2`: Secondary source-frame mass (units of solar masses)
-   * `a_1`: Primary dimensionless spin
-   * `a_2`: Secondary dimensionless spin
-   * One of the following:
-      * `redshift`: Redshift
-      * `luminosity_distance`: Luminosity distance in Gpc
-      * `comoving_distance`: Comoving distance in Gpc
+* `mass_1`: Primary source-frame mass (units of solar masses)
+* `mass_2`: Secondary source-frame mass (units of solar masses)
+* `a_1`: Primary dimensionless spin
+* `a_2`: Secondary dimensionless spin
+* One of the following:
+  * `redshift`: Redshift
+  * `luminosity_distance`: Luminosity distance in Gpc
+  * `comoving_distance`: Comoving distance in Gpc
 
 **Optional parameters.**
 The following parameters are, in contrast, optional.
 Note that, if not provided, *they will be generated randomly for each binary* according to the default distributions listed below.
 
-   * `cos_theta_1`: Spin-orbit tilt of primary. If not provided, drawn uniformly between $`[-1,1]`$.
-   * `cos_theta_2`: Spin-orbit tilt of secondary. If not provided, drawn uniformly between $`[-1,1]`$.
-   * `phi_12`: Azimuthal angle between primary and secondary spin vectors (units of radians). If not provided, drawn uniformly between $`[0,2\pi]`$.
-   * `right_ascension`: Right ascension of binary on the sky (units of radians). If not provided, drawn uniformly between $`[0,2\pi]`$.
-   * `cos_inclination`: Cosine inclination of the binary's orbit with respect to our line of sight. If not provided, drawn uniformly between $`[-1,1]`$. The parameter `inclination` can equivalently be provided (units of radians)
-   * `polarization_angle`: Binary polarization angle. If not provided, drawn uniformly between $`[0,2\pi]`$.
+* `cos_theta_1`: Spin-orbit tilt of primary. If not provided, drawn uniformly between $`[-1,1]`$.
+* `cos_theta_2`: Spin-orbit tilt of secondary. If not provided, drawn uniformly between $`[-1,1]`$.
+* `phi_12`: Azimuthal angle between primary and secondary spin vectors (units of radians). If not provided, drawn uniformly between $`[0,2\pi]`$.
+* `right_ascension`: Right ascension of binary on the sky (units of radians). If not provided, drawn uniformly between $`[0,2\pi]`$.
+* `cos_inclination`: Cosine inclination of the binary's orbit with respect to our line of sight. If not provided, drawn uniformly between $`[-1,1]`$. The parameter `inclination` can equivalently be provided (units of radians)
+* `polarization_angle`: Binary polarization angle. If not provided, drawn uniformly between $`[0,2\pi]`$.
 
 ### 2. Direct evaluation via `__call__()`
 
@@ -100,7 +102,9 @@ params = jnp.array([m1, m2, a1, a2, cost1, cost2, z, cos_inclination, pol, phi12
 # Compute detection probabilities
 jitted_pdet_O3(params)
 ```
+
 **Output**
+
 ```python
 Array([[0.55567697],
        [0.27248132]], dtype=float64)
