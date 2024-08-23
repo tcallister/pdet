@@ -108,4 +108,19 @@ Array([[0.55567697],
 
 ## Range of validity
 
-### `p_det_O3`
+Networks were trained using data spanning the ranges described below:
+
+### `pdet_O3`
+
+Primary masses
+* $$1 M_\odot \leq m_1 \leq 100 M_\odot$$
+
+Secondary masses
+* $$m_2 \geq 1 M_\odot$$ ($$1 M_\odot \leq m_1 \leq 60 M_\odot$$)
+* $$m_2 \geq 2 M_\odot$$ ($$60 M\_\odot \leq m\_1 \leq 100 M\_\odot$$)
+* Note: Although real pipeline injections were available only in the above intervals, auxiliary "hopeless" training data were generated with $$m_2 \geq 1 M_\odot$$ across the full range of primary masses, and so the network has learned _some_ information outisde these ranges.
+
+Spin magnitudes
+* $$a<0.4$$ (component masses below $$2 M_\odot$$)
+* $$a<0.998$$ (component masses above $$2 M_\odot$$)
+* Note: Although real pipeline injections were available only in the above intervals, auxiliary "hopeless" training data were generated with $$a<0.998$$ across the full range of component masses.
