@@ -7,7 +7,7 @@ The following table describes available emulators.
 
 | Name | Observing run | Instruments | Valid Parameter Space |
 | ---- | ------------- | ----------- | --------------------- |
-| `pdet_O3` | O3 (includes both O3a and O3b) | LIGO-Hanford, LIGO-Livingston, Virgo | [test](#p_det_O3)
+| `pdet_O3` | O3 (includes both O3a and O3b) | LIGO-Hanford, LIGO-Livingston, Virgo | [pdet_O3](#pdet_O3)
 
 ## How to use
 
